@@ -39,7 +39,9 @@ the playback is more debugged, I'll have it create the file
 if it's not there and will probably put it in /lib.)
 - You run it with:
 
-lapfs cache [server]
+lapfs [-d] cache [server]
+
+The -d option turns on debugging output.
 
 Both the cache and server can take several different forms.
   1: If it starts with "/chan" it's directly opened as the Sys->FD
