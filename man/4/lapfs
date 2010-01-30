@@ -1,0 +1,123 @@
+.TH LAPFS 4
+.SH NAME
+lapfs \- laptop file system
+.SH SYNOPSIS
+.B lapfs
+[
+.B -d
+]
+.I cache
+[
+.I server
+]
+.SH DESCRIPTION
+.I Lapfs
+acts as a mirroring file system targetted for use in laptop computers.
+When the machine running
+.I lapfs
+is connected to its file server, copies of all data exchanged between server
+and client are stored on the client's local disk.
+When the client is not on the server's network, then all requests are
+served out of that local store, and
+.I lapfs
+acts as a write-back cache.
+Reads are processed normally.
+Writes are both sent to the local store and are recorded in a
+file for later playback.
+When
+.I lapfs
+connects to a file server, if there is a file of recorded operations,
+they are sent to the file server before it falls into normal
+operation.
+
+.I Lapfs
+listens on TCP port 1962 for connections from clients.
+When a client closes the connection,
+.I lapfs
+exits.
+
+The optional
+.B -d
+argument turns on verbose output for debugging.
+.I Lapfs
+always requires that it's cache/mirror location be specified.
+If the server is also given and if
+.I lapfs
+is able to successfully connect to the server, then
+.I lapfs
+will use its connected, mirroring behavior.
+If either no server is specified, or if
+.I lapfs
+is unable to connect to the server, then
+it will go into its cache-only behavior.
+Both
+.I cache
+and
+.I server
+can take one one of three formats.
+If the string begins with
+.L /chan
+then it is taken to be the pathname to a channel which
+is then opened and used directly.
+If the string contains an exclamation point (!)
+then it is taken to be a network address that is dialed,
+and the resulting data fd is used to communicate with
+the server.
+Finally, if the string begins with an octothorp (#)
+or a slash (/)
+then it is taken to be the path to a directory where the
+cache or server files are to be found.
+In this case,
+.I lapfs
+creates a pipe and calls
+.IR sys-export (2)
+with one end of the pipe and the string as arguments.
+
+When
+.I lapfs
+is operating in a cache-only mode, it records all write
+requests in the file
+.L wblog
+in the directory from which 
+.I lapfs
+is run.
+However, if the file does not exist when
+.I lapfs
+is started, it does not create the file.
+When the log file is played back on a successful connection
+to the file server, it is truncated and begins accumulting
+more changes to relay to the server.
+
+.SH EXAMPLES
+
+Serving a local cache and mounting it on
+/n/fs:
+.IP
+.EX
+lapfs /usr/inferno/lib/fscache
+mount -A 'tcp!127.1!1962' /n/fs
+.EE
+.PP
+Mouting the
+.I lapfs
+service with P9P connecting to a server named bootes (serving an
+unauthenticated connection on port 6666) with the
+cache stored on the host system:
+.IP
+.EX
+lapfs '#U*/home/foo/.bootescache' 'tcp!bootes!6666'
+.EX
+.PP
+and on the host system:
+.IP
+.EX
+9 mount 'tcp!127.1!1962' /home/foo/fs
+.EE
+.PP
+
+.SH SOURCE
+.B /appl/cmd/lapfs.b
+
+.SH BUGS
+.I Lapfs
+does not directly support authentication.
